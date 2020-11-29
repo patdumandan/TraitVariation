@@ -1,32 +1,32 @@
 ---
-title: "spatiotemporal patterns of trait variation"
+title: "Spatiotemporal patterns of trait variation"
 author: "Pat Dumandan"
 date: "11/13/2020"
 output: html_document
 ---
 
-## Question 1: How does variation in one temporal scale alter outcomes on larger temporal scales? (seasonal to annual)   
-### 1: intra- and inter- trait variation seasonal and annual patterns
+### Question 1: How does variation in one temporal scale alter outcomes on larger temporal scales? (intra- and inter- trait variation seasonal and annual patterns)
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+require(dplyr)
+require(raster)
+
 Portal_rodent=read.csv("./PortalData/Rodents/Portal_rodent.csv")
 Portal_plots=read.csv("./PortalData/SiteandMethods/Portal_plots.csv")
 portal1=inner_join(Portal_rodent, Portal_plots, by= c("plot", "month", "year"))
-require(dplyr)
-require(raster)
 
 target_sp=c("PB", "PP", "PE", "PF", "PM", "RM")
 targ_s1=c(4,5) #months: Apr-May
 targ_s2=c(8,9,10) #Months: Aug-Oct
 ```
 
-### Interspecific variation: seasonal patterns (season 1: Apr-May-first seed drop)
+#### Interspecific variation: seasonal patterns (season 1: Apr-May:first seed drop)
 *calculated by taking the mean trait value for each species and then calculating the CV across species (Jung et al., 2010)*    
-**interspecific: 44.50 (if grouped by year), if not grouped by year=46.35, if grouped by species and year but indiv.values per month in the season:37.11**
-
-```{r}
+*interspecific: 44.50 (if grouped by species and year), if grouped by species only year=46.35, if grouped by species and year but indiv.values per month in the season:37.11*  
+**Question for Morgan: should I only include representative months per season or should I include other months as well?**  
+```{r,message=FALSE, warning=FALSE}
 #interspecific variation across all years during first seed drop (Apr-May)
 
-#grouped by species and year (separate value per year but average of the months of the season)
+#grouped by species and year (separate value per year but uses only average for the months of the season)
 total_wgt_con1a=portal1%>%
   filter(species %in% target_sp,treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
   group_by(species, year)%>%
@@ -47,15 +47,14 @@ cv(total_wgt_con1a$mean_wgt)
 cv(total_wgt_con1b$mean_wgt)
 cv(total_wgt_con1c$wgt)
 ```
-#### *Q for Morgan: which is the most appropriate way to get the CV among the 3?*
+**Question for Morgan: which is the most appropriate way to get the CV among the 3?**
 
-
-### Intraspecific trait variation: seasonal patterns (season 1: Apr-May-first seed drop)  
+#### Intraspecific trait variation: seasonal patterns (season 1: Apr-May-first seed drop)  
 *determined intraspecific variation by calculating the CVs of each species for each trait independently and then taking the mean of these values (Dawson and Jonsson, 2020)*
-**mean CV of 6 species in Apr-May:21.06**
+*mean CV of 6 species in Apr-May:16.83*
 
-```{r}
-#create function to calculate cv
+```{r,message=FALSE, warning=FALSE}
+#create function to calculate cv: STILL NEED TO WORK ON THIS
 
 itv_sp=function(species, weight){
   cv=sd(weight)/mean(weight)*100
@@ -63,91 +62,107 @@ itv_sp=function(species, weight){
 }
 
 #create for loop to get a vector of CVs for all species
-itv_season=vector(mode="numeric", length=length(target_sp))
-species=as.vector(total_wgt_con1b$species)
-weight=as.vector(total_wgt_con1b$mean_wgt)
+#itv_season=vector(mode="numeric", length=length(target_sp))
+#species=as.vector(total_wgt_con1b$species)
+#weight=as.vector(total_wgt_con1b$mean_wgt)
 
-for (i in 1:length(itv_season)){
-  cv[i]=itv_sp(species=species[i], weight=weight[i])
-  itv_season=cv[i]
-}
-cv
+#for (i in 1:length(itv_season)){
+ # cv[i]=itv_sp(species=species[i], weight=weight[i])
+  #itv_season=cv[i]}
+#cv
+```
+
+```{r,message=FALSE, warning=FALSE}
+#Do manually for now 
 #species-specific data
 PB_wgt_con=portal1%>%
   filter(species== "PB",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species)
-cv(PB_wgt_con$wgt) #intraspecific: 21.06
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PB_wgt_con$mean_wgt) #intraspecific: 21.06
 
 PP_wgt_con=portal1%>%
   filter(species== "PP", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species)
-cv(PP_wgt_con$wgt) #intraspecific: 16.83
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PP_wgt_con$mean_wgt) #intraspecific: 16.83
 
 PE_wgt_con=portal1%>%
   filter(species== "PE",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species)
-cv(PE_wgt_con$wgt) #intraspecific: 17.61
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PE_wgt_con$mean_wgt) #intraspecific: 17.61
 
 PF_wgt_con=portal1%>%
   filter(species== "PF",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species, treatment)
-cv(PF_wgt_con$wgt) #intraspecific: 17.11
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PF_wgt_con$mean_wgt) #intraspecific: 17.11
 
 PM_wgt_con=portal1%>%
   filter(species== "PM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species)
-cv(PM_wgt_con$wgt) #intraspecific: 19.22
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PM_wgt_con$mean_wgt) #intraspecific: 19.22
 
 RM_wgt_con=portal1%>%
   filter(species== "RM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s1)%>%
-  group_by(species)
-cv(RM_wgt_con$wgt) #intraspecific: 17.08
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(RM_wgt_con$mean_wgt) #intraspecific: 17.08
 ```
 
 #### Interspecific variation: seasonal patterns (season 2: Aug-Oct-second seed drop)
-**interspecific: 42.06**
+*mean CV of all 6 species (interspecific): 43.49*
 
-```{r}
-total_wgt_con1=portal1%>%
-  filter(species %in% target_sp, !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species, treatment)%>%
+```{r,message=FALSE, warning=FALSE}
+#for now, used most raw form to calculate cv (individual mass per year and month per species)
+total_wgt_con2=portal1%>%
+  filter(species %in% target_sp, treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
+  group_by(species)%>%
   summarise(mean_wgt=mean(wgt))
-cv(total_wgt_con1$mean_wgt)  
+cv(total_wgt_con2$mean_wgt)  
 ```
 
 #### Intraspecific trait variation: seasonal patterns (season 2: Aug-Oct-second seed drop)  
-**mean CV of 6 species in Aug-Oct:16.47**
+*mean CV of 6 species in Aug-Oct:18.15*
 
-```{r}
+```{r,message=FALSE, warning=FALSE}
 PB_wgt_con2=portal1%>%
   filter(species== "PB",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(PB_wgt_con2$wgt) #intraspecific: 18.15
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PB_wgt_con2$mean_wgt) #intraspecific: 18.15
 
 PP_wgt_con2=portal1%>%
   filter(species== "PP", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(PP_wgt_con2$wgt) #intraspecific: 16.47
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PP_wgt_con2$mean_wgt) #intraspecific: 16.47
 
 PE_wgt_con2=portal1%>%
   filter(species== "PE",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(PE_wgt_con2$wgt) #intraspecific: 20.92
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PE_wgt_con2$mean_wgt) #intraspecific: 20.92
 
 PF_wgt_con2=portal1%>%
   filter(species== "PF",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(PF_wgt_con2$wgt) #intraspecific: 18.20
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PF_wgt_con2$mean_wgt) #intraspecific: 18.20
 
 PM_wgt_con2=portal1%>%
   filter(species== "PM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(PM_wgt_con2$wgt) #intraspecific: 18.21
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(PM_wgt_con2$mean_wgt) #intraspecific: 18.21
 
 RM_wgt_con2=portal1%>%
   filter(species== "RM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
-cv(RM_wgt_con2$wgt) #intraspecific: 26.98
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(RM_wgt_con2$mean_wgt) #intraspecific: 26.98
 
 itv_sp(RM, RM_wgt_con2$wgt)
 
@@ -155,58 +170,55 @@ itv_sp(RM, RM_wgt_con2$wgt)
 
 #### Interspecific variation annual patterns
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 total_wgt_con_yr=portal1%>%
   filter(species %in% target_sp,treatment=="control", !(age=="J"),!is.na(wgt))%>%
-  group_by(species, year)%>%
-  summarise(mean_wgt=mean(wgt))
-str(total_wgt_con_yr)
-cv(total_wgt_con_yr$mean_wgt) #43.96
+  group_by(species)
+cv(total_wgt_con_yr$wgt) #43.96
 ```
 
 #### Intraspecific trait variation: annual patterns 
-**mean CV of 6 species: **
+*mean CV of 6 species: 21.08 *
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #### Create function to calculate cv
 itv_sp=function(species, weight){
 cv=sd(weight)/mean(weight)*100
 return(cv)
 }
 
-PB_wgt_con2=portal1%>%
-  filter(species== "PB",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species, year)
+PB_wgt_con_yr=portal1%>%
+  filter(species== "PB",treatment=="control", !(age=="J"),!is.na(wgt))
+itv_sp(PB, PB_wgt_con_yr$wgt) #9.6
 
-PP_wgt_con2=portal1%>%
-  filter(species== "PP", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
+PP_wgt_con_yr=portal1%>%
+  filter(species== "PP", !(age=="J"),!is.na(wgt))
+itv_sp(PP, PP_wgt_con_yr$wgt) #7
 
-PE_wgt_con2=portal1%>%
-  filter(species== "PE",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
+PE_wgt_con_yr=portal1%>%
+  filter(species== "PE", !(age=="J"),!is.na(wgt))
+itv_sp(PE, PE_wgt_con_yr$wgt) #6.8
 
-PF_wgt_con2=portal1%>%
-  filter(species== "PF",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species, treatment)
+PF_wgt_con_yr=portal1%>%
+  filter(species== "PF", !(age=="J"),!is.na(wgt))
+itv_sp(PF, PF_wgt_con_yr$wgt) #8.4
 
-PM_wgt_con2=portal1%>%
-  filter(species== "PM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
+PM_wgt_con_yr=portal1%>%
+  filter(species== "PM", !(age=="J"),!is.na(wgt))
+itv_sp(PM, PM_wgt_con_yr$wgt) #13.4
 
-RM_wgt_con2=portal1%>%
-  filter(species== "RM",treatment=="control", !(age=="J"),!is.na(wgt),month %in% targ_s2)%>%
-  group_by(species)
+RM_wgt_con_yr=portal1%>%
+  filter(species== "RM", !(age=="J"),!is.na(wgt))%>%
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))
 
-itv_sp(PB, PB_wgt_con2$wgt)
+#how I calculated cv using raw/ungrouped values
+RM_wgt_con_yr=portal1%>%
+  filter(species== "RM", !(age=="J"),!is.na(wgt))
+itv_sp(RM, RM_wgt_con_yr$wgt) #20.27
 
-#using raster package:
-cv(PB_wgt_con2$wgt) #intraspecific: 18.15
-cv(PP_wgt_con2$wgt) #intraspecific: 16.47
-cv(PE_wgt_con2$wgt) #intraspecific: 20.92
-cv(PF_wgt_con2$wgt) #intraspecific: 18.20
-cv(PM_wgt_con2$wgt) #intraspecific: 18.21
-cv(RM_wgt_con2$wgt) #intraspecific: 26.98
 ```
-
-
+**Question for Morgan: ** 
+* what is the most appropriate way to go about getting the annual CVs for intraspecific trait variation-- raw values (1 value per month per year) or mean value per year?  
+*Note: if used raw, ITV is increasing from seasonal to annual, if used mean value per year, ITV is decreasing*  
+* what's the next reasonable time-scale (every 2 or 5 or 10 years?)
