@@ -9,6 +9,8 @@ output: html_document
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
 require(dplyr)
 require(raster)
+require(ggplotgui)
+require(ggplot2)
 
 Portal_rodent=read.csv("./PortalData/Rodents/Portal_rodent.csv")
 Portal_plots=read.csv("./PortalData/SiteandMethods/Portal_plots.csv")
@@ -218,7 +220,48 @@ RM_wgt_con_yr=portal1%>%
 itv_sp(RM, RM_wgt_con_yr$wgt) #20.27
 
 ```
+
+#### Plots for trait variation
+
+```{r}
+traitcv=read.csv("traitcv.csv")
+
+targ=c("all", "all rep")
+df=traitcv%>%
+  filter(group=="ungrouped", species %in% targ)
+
+df$time.scale <- factor(df$time.scale, levels=c("first seed drop", "second seed drop", "annual"))
+graph <- ggplot(df, aes(x = time.scale, y = value, fill = variation.type)) +
+  geom_dotplot(binaxis = 'y', binwidth = 1, stackdir = 'up') +
+  labs(x = 'time scale', y = 'coefficient of variation (%)') +
+  ggtitle('ungrouped') +
+  theme_classic() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+graph
+grp=c("yr and sp", "yr")
+
+df2=traitcv%>%
+  filter(group %in% grp, species %in% targ)
+df2$time.scale <- factor(df2$time.scale, levels=c("first seed drop", "second seed drop", "annual"))
+
+graph2 <- ggplot(df2, aes(x = time.scale, y = value, fill = variation.type)) +
+  geom_dotplot(binaxis = 'y', binwidth = 1, stackdir = 'up') +
+  labs(x = 'time scale', y = 'coefficient of variation (%)') +
+  ggtitle('grouped by year') +
+  theme_classic() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+graph2
+
+```
+
 **Question for Morgan: ** 
 * what is the most appropriate way to go about getting the annual CVs for intraspecific trait variation-- raw values (1 value per month per year) or mean value per year?  
 *Note: if used raw, ITV is increasing from seasonal to annual, if used mean value per year, ITV is decreasing*  
 * what's the next reasonable time-scale (every 2 or 5 or 10 years?)
+
