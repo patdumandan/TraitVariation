@@ -1,0 +1,42 @@
+---
+title: "Temporal patterns of trait variation"
+author: "Pat Dumandan"
+date: "12/01/2020"
+output: html_document
+---
+## Overarching Question: if processes that drive population dynamics and shape community structure vary across spatial and temporal scales (e.g., effect of disturbance occurring in a small plot at year one vs effect of similar disturbance at the regional level after 10 years), then we would expect that the traits expressed by co-occurring species and individuals would also vary. But how? (i.e., in what context would we expect intra- or interspecific trait variation to be greater and how does that relate to their population and community dynamics?)
+
+### Exploratory Analysis  
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+require(dplyr)
+require(raster)
+require(ggplotgui)
+require(ggplot2)
+
+Portal_rodent=read.csv("./PortalData/Rodents/Portal_rodent.csv")
+Portal_plots=read.csv("./PortalData/SiteandMethods/Portal_plots.csv")
+portal1=inner_join(Portal_rodent, Portal_plots, by= c("plot", "month", "year"))
+portal2=inner_join(portal1, Portal_rodent_species, by="speciescode")                  
+portal1$speciescode=portal1$species
+
+unid_genus=c("Onychomys sp.", "Sigmodon sp.", "Chaetodipus/Peromyscus sp.", "Rodent sp.", "Dipodomys sp.")
+rodent_all=portal2%>%
+          filter(taxa=="Rodent", treatment=="control", !(scientificname %in% unid_genus))
+
+unique(rodent_all$scientificname)
+
+```
+#### Q1: How do we expect intra- and interspecific trait variation to scale across different time scales?  
+
+*calculate average coefficient of variation on a monthly, seasonal, annual, and decadal basis *
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+# A. what is the average intra- and interspecic trait variation across all months?
+
+
+
+
+```
+
+#### Q2: At each time scale, when do we expect intra- or interspecific trait variation to be greater/more important?
+
