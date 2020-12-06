@@ -6,8 +6,6 @@ output: html_document
 ---
 ## Overarching Question: if processes that drive population dynamics and shape community structure vary across spatial and temporal scales (e.g., effect of disturbance occurring in a small plot at year one vs effect of similar disturbance at the regional level after 10 years), then we would expect that the traits expressed by co-occurring species and individuals would also vary. But how? (i.e., in what context would we expect intra- or interspecific trait variation to be greater and how does that relate to their population and community dynamics?)
 
-### Exploratory Analysis  
-
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
 require(dplyr)
 require(raster)
@@ -16,25 +14,72 @@ require(ggplot2)
 
 Portal_rodent=read.csv("./PortalData/Rodents/Portal_rodent.csv")
 Portal_plots=read.csv("./PortalData/SiteandMethods/Portal_plots.csv")
+Portal_sp=read.csv("./PortalData/Rodents/Portal_rodent_species.csv")
 portal1=inner_join(Portal_rodent, Portal_plots, by= c("plot", "month", "year"))
-portal2=inner_join(portal1, Portal_rodent_species, by="speciescode")                  
 portal1$speciescode=portal1$species
+portal2=inner_join(portal1, Portal_sp, by="speciescode")                  
 
 unid_genus=c("Onychomys sp.", "Sigmodon sp.", "Chaetodipus/Peromyscus sp.", "Rodent sp.", "Dipodomys sp.")
 rodent_all=portal2%>%
           filter(taxa=="Rodent", treatment=="control", !(scientificname %in% unid_genus))
 
-unique(rodent_all$scientificname)
-
 ```
-#### Q1: How do we expect intra- and interspecific trait variation to scale across different time scales?  
+### Q1: How do we expect intra- and interspecific trait variation to scale across different time scales?  
+*calculate average coefficient of variation on a monthly, seasonal, annual, and decadal basis *  
 
-*calculate average coefficient of variation on a monthly, seasonal, annual, and decadal basis *
+#### **A. Monthly scale** 
+
+#### Interspecific trait variation at different temporal scales (Interspecific CV) 
+*how dispersed are the values of body size across all species across all months?*  
+
+*calculated by taking the mean trait value for each species for each month across all years and then calculating the CV across species and month (Jung et al., 2010)*
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
-# A. what is the average intra- and interspecic trait variation across all months?
+month_inter=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt))%>%
+  group_by(month, scientificname)%>%
+  summarise(mean_wgt=mean(wgt))
+
+cv(month_inter$mean_wgt) #96.64
+```
+#### Intraspecific trait variation at different temporal scales (Intraspecific CV) 
+*how dispersed are the values of body size for each species across all months?*  
+*calculated the CVs of each species for each month across all years independently and then taking the mean of these values across all 12 months (Dawson and Jonsson, 2020)*
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+month_intra=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt))%>%
+  group_by(month, scientificname)%>%
+  summarise(mean_wgt=mean(wgt))
+
+#cv for each species for each month
+mon_intra=rodent_all%>%
+  filter(!is.na(wgt))%>%
+  group_by(scientificname, month)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100)
 
 
+mon_sp=mon_intra%>%
+      group_by(scientificname)%>%
+      summarise(mean_cv=mean(cv))
 
+mean(mon_sp$mean_cv) #12.38
+```
+
+#### **B. Seasonal scale**
+#### Interspecific trait variation at different temporal scales (Interspecific CV) 
+*how dispersed are the values of body size across all species across all seasons?*  
+
+*calculated by taking the mean trait value for each species for each month for each season and then calculating the CV across species and season (Jung et al., 2010)*
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+targ_s1=c(1:6)
+targ_s2=c(7:12)
+
+season1_inter=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), month %in% targ_s1)%>%
+  group_by(month, scientificname)%>%
+  summarise(mean_wgt=mean(wgt))
+
+cv(month_inter$mean_wgt) #96.64
 
 ```
 
