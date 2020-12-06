@@ -4,13 +4,16 @@ author: "Pat Dumandan"
 date: "12/01/2020"
 output: html_document
 ---
-## Overarching Question: if processes that drive population dynamics and shape community structure vary across spatial and temporal scales (e.g., effect of disturbance occurring in a small plot at year one vs effect of similar disturbance at the regional level after 10 years), then we would expect that the traits expressed by co-occurring species and individuals would also vary. But how? (i.e., in what context would we expect intra- or interspecific trait variation to be greater and how does that relate to their population and community dynamics?)
+## Overarching Question:  
+if processes that drive population dynamics and shape community structure vary across spatial and temporal scales (e.g., effect of disturbance occurring in a small plot at year one vs effect of similar disturbance at the regional level after 10 years), then we would expect that the traits expressed by co-occurring species and individuals would also vary. But how? (i.e., in what context would we expect intra- or interspecific trait variation to be greater and how does that relate to their population and community dynamics?, b) how do assembly mechanisms (trait distribution) vary across space and time?)
 
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
 require(dplyr)
 require(raster)
 require(ggplotgui)
 require(ggplot2)
+require(TPD)
+require(reshape2)
 
 Portal_rodent=read.csv("./PortalData/Rodents/Portal_rodent.csv")
 Portal_plots=read.csv("./PortalData/SiteandMethods/Portal_plots.csv")
@@ -29,59 +32,159 @@ rodent_all=portal2%>%
 
 #### **A. Monthly scale** 
 
-#### Interspecific trait variation at different temporal scales (Interspecific CV) 
+#### Interspecific trait variation at monthly scales (Interspecific CV) 
 *how dispersed are the values of body size across all species across all months?*  
 
 *calculated by taking the mean trait value for each species for each month across all years and then calculating the CV across species and month (Jung et al., 2010)*
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 month_inter=rodent_all%>%
-  filter(treatment=="control", !(age=="J"),!is.na(wgt))%>%
-  group_by(month, scientificname)%>%
+   filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname,month)%>%
   summarise(mean_wgt=mean(wgt))
 
-cv(month_inter$mean_wgt) #96.64
+month_inter=as.data.frame(month_inter)
+
+cv(month_inter$mean_wgt) #96.64: cumulative cv across all species
 ```
-#### Intraspecific trait variation at different temporal scales (Intraspecific CV) 
+#### Intraspecific trait variation at monthly scale (Intraspecific CV) 
 *how dispersed are the values of body size for each species across all months?*  
 *calculated the CVs of each species for each month across all years independently and then taking the mean of these values across all 12 months (Dawson and Jonsson, 2020)*
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
-month_intra=rodent_all%>%
-  filter(treatment=="control", !(age=="J"),!is.na(wgt))%>%
-  group_by(month, scientificname)%>%
-  summarise(mean_wgt=mean(wgt))
-
-#cv for each species for each month
+```{r, message=FALSE, warning=FALSE}
 mon_intra=rodent_all%>%
-  filter(!is.na(wgt))%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
   group_by(scientificname, month)%>%
   summarise(mean_wgt=mean(wgt))%>%
-  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100)
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100) #calculate CV for each species across all months
 
-
-mon_sp=mon_intra%>%
-      group_by(scientificname)%>%
-      summarise(mean_cv=mean(cv))
-
-mean(mon_sp$mean_cv) #12.38
+mean(unique(mon_intra$cv)) #11.93: average CV across all species across all months
 ```
 
 #### **B. Seasonal scale**
-#### Interspecific trait variation at different temporal scales (Interspecific CV) 
+#### Interspecific trait variation at seasonal scale (Interspecific CV) 
 *how dispersed are the values of body size across all species across all seasons?*  
 
 *calculated by taking the mean trait value for each species for each month for each season and then calculating the CV across species and season (Jung et al., 2010)*
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
-targ_s1=c(1:6)
-targ_s2=c(7:12)
+```{r, message=FALSE, warning=FALSE}
+df=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  mutate(season=ifelse(month <=6, 1,
+                       ifelse(month >= 7, 2, NA)))
 
-season1_inter=rodent_all%>%
-  filter(treatment=="control", !(age=="J"),!is.na(wgt), month %in% targ_s1)%>%
-  group_by(month, scientificname)%>%
+
+season_inter=df%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt))%>%
+  group_by(scientificname,season)%>%
   summarise(mean_wgt=mean(wgt))
 
-cv(month_inter$mean_wgt) #96.64
+cv(season_inter$mean_wgt) #94.48
+
+```
+#### Intraspecific trait variation at seasonal scale (Intraspecific CV) 
+*how dispersed are the values of body size for each species between both seasons?*  
+*calculated the CVs of each species for each season across all years independently and then taking the mean of these values between the two seasons (Dawson and Jonsson, 2020)*  
+```{r, message=FALSE, warning=FALSE}
+season_intra=df%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(season, scientificname)%>%
+  summarise(mean_wgt=mean(wgt))
+
+#cv for each species for each month
+seas_intra=df%>%
+  filter(!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname, season)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100) #calculate CV for each species between both seasons
+
+mean(unique(seas_intra$cv)) #6.65: average CV across all species for both seasons
+```
+
+#### **C. Annual Scale**
+
+#### Interspecific trait variation at annual scale (Interspecific CV)   
+*how dispersed are the values of body size across all species across all years?*  
+
+*calculated by taking the mean trait value for each species for each year and then calculating the CV across species and years*
+```{r, message=FALSE, warning=FALSE}
+year_inter=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname,year)%>%
+  summarise(mean_wgt=mean(wgt))
+
+cv(year_inter$mean_wgt) #100.05
 
 ```
 
-#### Q2: At each time scale, when do we expect intra- or interspecific trait variation to be greater/more important?
+#### Intraspecific trait variation at annual scale (Intraspecific CV) 
+*how dispersed are the values of body size for each species across all years?*  
+*calculated the CVs of each species for each year independently and then taking the mean of these values*  
+```{r, message=FALSE, warning=FALSE}
+#cv for each species for each month
+year_intra=df%>%
+   filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname, year)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100) #calculate CV for each species across all years
 
+mean(unique(year_intra$cv)) #12.63: average CV across all species across all years
+```
+#### **D. Decadal scale**
+#### Interspecific trait variation at decadal scale (Interspecific CV) 
+*how dispersed are the values of body size across all species across decades?*  
+
+*calculated by taking the mean trait value for each species for each decade and then calculating the CV across species and decades (Jung et al., 2010)*
+```{r, message=FALSE, warning=FALSE}
+d1=c(1977:1987)
+d2=c(1988:1998)
+d3=c(1999:2009)
+d4=c(2010:2020)
+df2=rodent_all%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  mutate(decade=ifelse(year %in% d1, 1,
+                ifelse(year %in% d2, 2, 
+                ifelse(year %in% d3, 3,
+                ifelse(year %in% d4, 4, NA)))))
+
+
+decade_inter=df2%>%
+   filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname,decade)%>%
+  summarise(mean_wgt=mean(wgt))
+
+cv(decade_inter$mean_wgt) #96.30
+
+```
+#### Intraspecific trait variation at seasonal scale (Intraspecific CV) 
+*how dispersed are the values of body size for each species across decades?*  
+*calculated the CVs of each species for each decade independently and then taking the mean of these values across all decades*  
+```{r, message=FALSE, warning=FALSE}
+dec_intra=df2%>%
+  filter(treatment=="control", !(age=="J"),!is.na(wgt), !(scientificname=="Ammospermophilus harrisi"))%>%
+  group_by(scientificname, decade)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt)*100) #calculate CV for each species across all decades
+
+mean(unique(dec_intra$cv), na.rm=T) #7.41: average CV across all species across decades
+```
+#### Visualizing results
+
+```{r, message=FALSE, warning=FALSE}
+temporal=read.csv("temporal.csv")
+temporal$scale <- factor(temporal$scale, levels=c("month", "season", "year", "decade"))
+
+graph <- ggplot(temporal, aes(x = scale, y = value, fill = variable)) +
+  geom_dotplot(binaxis = 'y', binwidth = 1, stackdir = 'up', dotsize = 5) +
+  labs(x = 'temporal scale', y = 'coefficient of variation (%)')+
+  labs(fill = 'source of variation') +
+  theme_classic() +
+  theme(legend.position = 'right')
+graph
+```  
+  
+  
+#### **Questions for Morgan:**  
+
+* do you agree with how intra- and interspecific CVs were calculated, in light of the question I am trying to ask?  
+* it seems that inter- is always greater than intra- across all time scales but the trend doesn't seem consistent (at longer time scales, trait variation doesn't seem to increase linearly). I wonder why. Is this where I could test scale transition theory to formulate equations describing the relationship between trait variation and times scale?  
+* would these be reasonable next steps given the general idea I'm going for:  
+   * calculate ratio of intra- to interspecific trait variation (to describe how the rate of niche breadth changes relative to niche space)  
+   * calculate month-, season,year-, and decade- specific variances and regress with species richness at each time scale/period (describe the source of within-period trait variation and see how it relates to community structure)  
