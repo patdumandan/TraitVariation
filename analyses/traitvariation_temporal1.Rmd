@@ -1,0 +1,139 @@
+---
+title: "Trait Variation"
+author: "Pat Dumandan"
+---
+#### Q1: What is the relative amount of variation in rodent body size at different temporal scales/ What is the temporal structure of variation in rodent body size?  
+
+Steps: (following Albert et al. 2010 paper)  
+* curate dataset on body mass of individuals in control plots  
+* log-transform weights  
+* variance decomposition analysis  
+* calculate coefficient of variation per species (for visual inspection on intraspecific variation) at each time scale and CV across all species (for interspecific TV)
+
+
+```{r setup, include=FALSE}
+require(portalr)
+require(dplyr)
+require(nlme)
+require(ape)
+Portal_rodent=summarize_individual_rodents(
+  path = get_default_data_path(),
+  clean = TRUE,
+  type = "Rodents",
+  length = "all",
+  unknowns = FALSE,
+  time = "date",
+  fillweight = FALSE,
+  min_plots = 1,
+  min_traps = 1,
+  download_if_missing = TRUE,
+  quiet = FALSE
+)%>%filter(!is.na(wgt))
+
+Portal_data=load_rodent_data(clean = TRUE)
+
+Portal_plot=Portal_data[["plots_table"]]
+Portal_plots=left_join(Portal_rodent, Portal_plot)
+
+control=Portal_plots%>%
+  filter(treatment=="control", !is.na(wgt))%>%
+  mutate(season=ifelse(month <=6, 1,
+                       ifelse(month >= 7, 2, NA)))
+
+cv=function (mean_wgt){
+  cv= sd(mean_wgt)/mean(mean_wgt)
+return(cv)
+  }
+```  
+
+```{r warning=F, message=F}
+m1=varcomp(lme(log(wgt)~1, random=~ 1|species/month/season/year, data=control),scale=T)
+plot(m1)
+m1
+```  
+This tells me that ~94% of variation in body size can be attributed to interspecific differences, and that ~5% can be attributed to intraspecific differences. Intraspecific differences during the month, season and year is low at <1%.   
+But I also want to know how much interspecific variation there is at each temporal scale. does it get bigger or smaller at increasing temporal scales? Let's calculate the coefficient of variation for each source type at different temporal scales.
+
+
+**MONTH**  
+
+*Interspecific*
+
+```{r message=F, warning=F}
+month_inter=control%>%
+  group_by(species, month)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(month_inter$mean_wgt)
+
+```
+
+*Intraspecific*
+
+```{r message=F, warning=F}
+month_intra=control%>%
+  group_by(species, month)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(month_intra$cv), na.rm=T)
+```  
+
+**SEASON**  
+
+*Interspecific*
+
+```{r message=F, warning=F}
+season_inter=control%>%
+  group_by(species, season)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(season_inter$mean_wgt)
+
+```
+
+*Intraspecific*
+
+```{r message=F, warning=F}
+season_intra=control%>%
+  group_by(species, season)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(season_intra$cv), na.rm=T)
+```  
+
+**YEAR**    
+
+*Interspecific*
+
+```{r message=F, warning=F}
+year_inter=control%>%
+  group_by(species, year)%>%
+  summarise(mean_wgt=mean(wgt))
+cv(year_inter$mean_wgt)
+
+```
+
+*Intraspecific*
+
+```{r message=F, warning=F}
+year_intra=control%>%
+  group_by(species,year)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(year_intra$cv), na.rm=T)
+```  
+I find it interesting that the amount of TV "dips" at the seasonal scale. I wonder why. is it because of the way I aggregated the data? or is there a plausible biological reason? Like during the breeding season(first half of the year), differences in body size may be lower because they're all trying to put on weight at the same time, and during the latter half of the year, they're mostly less active? (seasonal synchrony in fitness/performance) and it's not that much lower at the interspecific level because the timing of breeding events may vary for different species. or something?  
+
+Not sure if I'm doing the right thing trying to parse out sources of variation this way. have to do more reading on variance decomposition.  
+
+#### Q2: How does ITV and BTV relate to environmental variation (i.e., precipitation, temperature, NDVI) at monthly scale and does this relationship exist at longer temporal scales?  
+
+**To discuss with Morgan**  
+* was the way I aggregated the data for season appropriate?   
+* so to answer my second question, what I need is a time-series dataset of intra- and interspecific trait variation at monthly scale. and to do this, I was thinking that for interspecific trait variation values at monthly scales, I would calculate a community-level arithmetic mean of body size and then subtract the species-specific mean body size for a given month. then for intraspecific trait variation, I would use the species-specific mean body size and subtract body size of individuals. am I thinking about the next steps to build this dataset correctly?  
+* or is there another way for me to arrive at variation without directly manipulating the raw data?  
+
+
+Notes:  
+* this paper on accounting for vaiance in ecology is **awesome** and made me feel validated: https://escholarship.org/content/qt62j8b207/qt62j8b207_noSplash_a017bd4dd283fbd48904b175ace2dc1f.pdf 
