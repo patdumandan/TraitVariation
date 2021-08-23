@@ -1,0 +1,139 @@
+---
+title: 'Drivers of intraspecific variation at different temporal scales'
+author: "Pat Dumandan"
+date: "8/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (rstan)
+library(portalr)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+library(ape)
+library(lme4)
+
+```
+
+Research questions:  
+1. How much variation is there on the body size of female PBs at different time scales (i.e., month, season, and year)?  
+2. What drives the variation in body size of female PBs at each time scale?  
+3. How does variation in the proportion of female PPs at the nuclear scale (i.e., month) alter outcomes on larger temporal scales (i.e., season/year)?  
+
+*chose PBs as study system because results from rodent reproduction project seem to suggest that female PBs are more likely to be responsive to abiotic factors (and I sort of want to focus on climate variables as drivers of trait variation))*   
+
+I. Amount of variation at each time scale  
+
+```{r include=F}
+Portal_data_indiv=summarize_individual_rodents(
+  path = get_default_data_path(),
+  clean = TRUE,
+  type = "Rodents",
+  length = "all",
+  unknowns = FALSE,
+  time = "date",
+  fillweight = FALSE,
+  min_plots = 1,
+  min_traps = 1,
+  download_if_missing = TRUE,
+  quiet = FALSE)
+  
+Portal_data_indiv=Portal_data_indiv%>%
+  filter(!(treatment=="removal")& !is.na(treatment)& !is.na(sex) & !is.na(wgt))%>%
+  mutate(season=ifelse(month <=6, 1,
+  ifelse(month >= 7, 2, NA)))
+
+PB_females=Portal_data_indiv%>%filter(species=="PB", sex=="F", treatment=="control")
+PB_males=Portal_data_indiv%>%filter(species=="PB", sex=="M", treatment=="control")
+```  
+*Question: what is the right way to partition season? Right now, I have 2 seasons (Jan-Jun:S1, Jul-Dec:S2)*  
+
+A. calculating coefficient of variation
+
+```{r include=F}
+
+month_intra=PB_females%>%
+  group_by(month)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(month_intra$cv), na.rm=T) #0.04(0.05 ex), 0.08(M)
+
+season_intra=PB_females%>%
+  group_by(season)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(season_intra$cv), na.rm=T) #0.009 (0.002 ex), 0.0003(M)
+
+year_intra=PB_females%>%
+  group_by(year)%>%
+  summarise(mean_wgt=mean(wgt))%>%
+  mutate(cv=sd(mean_wgt)/mean(mean_wgt))
+
+mean(unique(year_intra$cv), na.rm=T) #0.11 (0.08 ex), 0.07(M)
+```  
+
+```{r, echo=F, fig.cap=" Coefficient of variation of body size (weight) of PB females at different temporal scales. values in parentheses are CV for PB female body sizes in exclosures."}
+pbf=matrix(c("0.05(0.04)", "0.002(0.009)", "0.08(0.11"), ncol=1, byrow=F)
+colnames(pbf)=c("CV")
+rownames(pbf)=c("month", "season", "year")
+pbf=as.table(pbf)
+pbf
+```  
+
+**For discussion with Morgan**  
+* It seems that intraspecific variation is generally low for female PBs in either exclosure or control plots at different temporal scales. Does this mean that PB females don't necessarily differ in sizes as much at any given point in time because they do the same things (e.g., in reproductive state, growing, etc)?  
+* with low ITV, does it still make sense to ask the question what drives it?  
+
+I sort of didn't find it too exciting to see low intraspecific variation in body size so I tried to look at another trait: reproductive traits. Now, I'm using individual-level data and have binomial response variables (1 for reproductive, 0 for non-reproductive).I'm curious about how much ITV is there on this trait so I tried to plot data points at different temporal scales
+```{r include=FALSE}
+Portal_data_indiv=Portal_data_indiv%>%
+  filter(treatment=="control" & !is.na(treatment)& !is.na(sex))%>%
+  mutate(season=ifelse(month <=6, "Jan-Jun",
+                       ifelse(month >= 7, "Jul-Dec", NA)))
+        
+repro_female=Portal_data_indiv%>%
+  filter(species=="PB", vagina==c("S", "P", "B")| pregnant=="P" | nipples==c("R", "E", "B") | 
+           lactation=="L")%>%
+  mutate(status="1")
+
+non_repro=Portal_data_indiv%>%
+  filter(species=="PB", reprod=="Z")%>%
+  mutate(status="0")
+
+PB_female=rbind(repro_female, non_repro)
+
+```  
+```{r echo=F}
+
+month_plot=PB_female%>%group_by(status,month)%>%
+  mutate(count=n())%>%
+ggplot(aes(x=status, y=count))+
+  geom_boxplot()+facet_wrap(~month)+geom_jitter(color=2)+ggtitle("monthly ITV")
+
+month_plot
+
+season_plot=PB_female%>%group_by(status,season)%>%
+  mutate(count=n())%>%
+  ggplot(aes(x=status, y=count))+
+  geom_boxplot()+facet_wrap(~season)+geom_jitter(color=2)+ggtitle("seasonal ITV")
+
+season_plot
+
+yr_plot=PB_female%>%group_by(status,year)%>%
+  mutate(count=n())%>%
+  ggplot(aes(x=year, y=count, col=status))+
+  geom_point()+ggtitle("annual ITV")
+
+yr_plot
+```   
+
+**For discussion with Morgan**  
+* How do I quantify variation in a categorical variable (1s and 0s)?  
+* Given these plots, does it seem like ITV would also be low given that the data points are scattered fairly uniformly at different temporal scales?  
+* I'm not sure I'm visualizing the data correctly actually. If I'm using individual level data, then I should be tracking the reproductive state of that individual each month and then plotting it? So that I could test whether it being in reproductive/non-reproductive state is linked to some external variable?  If this is the case, then I would have to figure out a way to manipulate Portaldata this way (I think Glenda is in the works on individual-level data cleaning). Although, if I do this, would I have enough data points? (what is the recapture rate of PBs on site?)  
+
