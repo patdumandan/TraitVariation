@@ -18,7 +18,7 @@ PP_plot_prop=left_join(PP_plot_F, PP_plot_reprod)%>%
                             month%in%c("9","10","11")~"4"),
          PB_period=case_when(year%in%c(1979:1994)~"1",
                              year%in%c(1995:2010)~"2",
-                             year%in%c(2013:2014)~"3"),
+                             year%in%c(2011:2014)~"3"),
          plotID=case_when(plot==2~"1",
                           plot==3~"2",
                           plot==4~"3",
@@ -32,8 +32,7 @@ PP_plot_prop=left_join(PP_plot_F, PP_plot_reprod)%>%
                           plot==21~"11",
                           plot==22~"12"))
 
-PP_plot_prop[is.na(PP_plot_prop)] <- 0 #set non-detects to 0
-
+PP_plot_prop[is.na(PP_plot_prop)] <- 0 
 #biomass###
 
 bmass=biomass(level="Plot", type="Rodents",
@@ -81,6 +80,11 @@ plot_comp$plotID=as.integer(plot_comp$plotID)
 plot_comp$trt=as.integer(as.factor(plot_comp$treatment))
 plot_comp$seasonID=as.integer(as.factor(plot_comp$seasonID))
 plot_comp$PB_period=as.integer(as.factor(plot_comp$PB_period))
+
+#STANDARDIZE####
+plot_comp$bmass_PBs=scale(plot_comp$bmass_PB)
+plot_comp$bmass_PPs=scale(plot_comp$bmass_PP)
+plot_comp$bmass_krats=scale(plot_comp$bmass_krat)
 
 plot_comp[is.na(plot_comp)] <- 0 #set non-detects to 0
 
