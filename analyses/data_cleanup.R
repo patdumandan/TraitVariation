@@ -1,3 +1,14 @@
+require(portalr)
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(dotwhisker)
+library(lubridate)
+library(reshape2)
+library(ggpubr)
+
+source("https://raw.githubusercontent.com/patdumandan/ReproPhenology/main/RScripts/data_cleaning_functions_Supp.R")
+
 Portal_data=summarize_individual_rodents(
   clean = TRUE,
   type = "Rodents",
