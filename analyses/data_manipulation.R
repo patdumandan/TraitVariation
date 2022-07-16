@@ -33,6 +33,8 @@ PP_plot_prop=left_join(PP_plot_F, PP_plot_reprod)%>%
                           plot==22~"12"))
 
 PP_plot_prop[is.na(PP_plot_prop)] <- 0 
+#write.csv(PP_plot_prop, "PPdat.csv")
+
 #biomass###
 
 bmass=biomass(level="Plot", type="Rodents",
@@ -89,3 +91,4 @@ plot_comp$bmass_krats=scale(plot_comp$bmass_krat)
 plot_comp[is.na(plot_comp)] <- 0 #set non-detects to 0
 
 str(plot_comp)
+#write.csv(plot_comp, "PPdat_bmass.csv")

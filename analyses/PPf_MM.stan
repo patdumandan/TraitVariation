@@ -22,9 +22,10 @@ parameters {
   vector[K] betas;//population-wide coefs
   vector<lower=0>[K] tau;//process error
   
-  vector[K] b1[J]; //  plot-level coefs
-   vector[K] b2[Z]; //  plot-level coefs
-   real<lower=0> sigma; // observation error
+   vector[K] b1[J]; //  plot-level coefs
+   vector[K] b2[Z]; //  trt-level coefs
+   real<lower=0> sigma; // plot variance
+   real<lower=0> delta; //treatment variance
 }
 
 transformed parameters {
@@ -49,6 +50,9 @@ transformed parameters {
 
   for(i in 1:J)
    b1[i] ~ cauchy(betas,tau);//prior for the slopes following Gelman 2008
+  
+  for (a in 1:Z)
+  b2[a]~ cauchy (betas, delta); 
   
   Y ~ beta_binomial(n,alpha,beta);
 }

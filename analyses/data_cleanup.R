@@ -72,3 +72,5 @@ Portal_no_same= no_dup[-which(no_dup$tag %in% sametags),]
 # "clean" data
 
 Portal_clean=subsetDat(Portal_no_same)
+
+#write.csv(Portal_clean, "Portalraw.csv")
