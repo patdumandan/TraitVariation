@@ -18,12 +18,12 @@ data {
 }
 
 parameters {
-//  real b0; //population intercept
+  real b0; //population intercept
   vector[K] betas;//population-wide coefs
   vector<lower=0>[K] tau;//process error
   
-   vector[K] b1[J]; //  plot-level coefs
-   vector[K] b2[Z]; //  trt-level coefs
+   vector[J] b1; //  plot-level coefs
+   vector[Z] b2; //  trt-level coefs
    real<lower=0> sigma; // plot variance
    real<lower=0> delta; //treatment variance
 }
@@ -36,7 +36,7 @@ transformed parameters {
   
   for (i in 1:N) 
     
-  mu[i]= inv_logit(X[i,]* b1[plot[i]]+ X[i,]* b2[trt[i]]);
+  mu[i]= inv_logit(b0+X[i,]* b1[plot[i]]+ X[i,]* b2[trt[i]]);
  
  alpha= mu*sigma;
  beta=(1-mu)*sigma;
