@@ -1,13 +1,14 @@
-PP_dat_F=Portal_clean%>%filter(sex=="F", species=="PP")
+PP_dat_F=Portal_clean%>%filter(sex=="F", species=="PP")%>%
+  mutate(date=make_date(year, month, day))
 
 PP_plot_F=PP_dat_F%>%
-  group_by(plot, treatment, month, year)%>%
+  group_by(plot, treatment, month, year, date)%>%
   summarise(total=n())
 
 PP_plot_reprod=PP_dat_F%>%
   filter(vagina==c("S", "P", "B")| pregnant=="P" | 
            nipples==c("R", "E", "B") | lactation=="L")%>%
-  group_by(plot, treatment, month, year)%>%
+  group_by(plot, treatment, month, year, date)%>%
   summarise(reproductive=n())
 
 PP_plot_prop=left_join(PP_plot_F, PP_plot_reprod)%>%
@@ -33,7 +34,7 @@ PP_plot_prop=left_join(PP_plot_F, PP_plot_reprod)%>%
                           plot==22~"12"))
 
 PP_plot_prop[is.na(PP_plot_prop)] <- 0 
-#write.csv(PP_plot_prop, "PPdat.csv")
+#write.csv(PP_plot_prop, "PPdat_date.csv")
 
 #biomass###
 
@@ -55,11 +56,11 @@ DM_bmass=bmass%>%select(DM, plot, treatment, month, year, date)%>%
   summarise(bmass_DM=sum(DM))
 
 PP_bmass=bmass%>%select(PP, plot, treatment, month, year, date)%>%
-  group_by(month, year, treatment,plot)%>%
+  group_by(month, year, censusdate, treatment,plot)%>%
   summarise(bmass_PP=sum(PP))
 
 PB_bmass=bmass%>%select(PB, plot, treatment, month, year, date)%>%
-  group_by(month, year, treatment,plot)%>%
+  group_by(month, year, date, treatment,plot)%>%
   summarise(bmass_PB=sum(PB))
 
 all_bmass11=left_join(PP_plot_prop,DM_bmass, by=c("month", "year", "treatment", "plot"))
@@ -92,3 +93,27 @@ plot_comp[is.na(plot_comp)] <- 0 #set non-detects to 0
 
 str(plot_comp)
 #write.csv(plot_comp, "PPdat_bmass.csv")
+
+#rolling window of biomass data####
+seas_bmass=biomass(level="Plot", type="Rodents",
+                   clean=TRUE, plots="all", time="date", shape="crosstab")%>%
+  mutate(month=month(censusdate), date=day(censusdate), year=year(censusdate))%>%
+  filter(!(year<1979), !(year>2014), !(treatment %in%c("spectabs", "removal")))
+
+#sample with plot 2
+s1=seas_bmass%>%filter(plot==2)%>%select(censusdate, treatment, plot, PB)%>%mutate(ID=row_number())
+s3=rollsum(s1$PB, 3, fill=NA, align="right")
+s2=cbind(s1,s3)
+s2[is.na(s2)] <- 0
+
+#all data####
+
+all_bmass=seas_bmass%>%group_by(plot, treatment)%>%mutate(ID=row_number(), rs=rollsum(PB, 3, fill=NA, align="right"))%>%
+  select(censusdate,treatment,plot,ID,PB,rs)%>%rename(date=censusdate)
+all_bmass[is.na(all_bmass)] <- 0
+
+pc=left_join(PP_plot_prop, all_bmass)
+pc=pc%>%rename(mon_PB=PB, roll_PB=rs)%>%relocate(c(seasonID, PB_period, ID), .after=date)%>%select(-plotID)
+pc[is.na(pc)] <- 0
+
+#write.csv(pc, "PPscale_data.csv")

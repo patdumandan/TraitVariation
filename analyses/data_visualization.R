@@ -24,7 +24,7 @@ ggplot(plot_comp, aes(x=bmass_PB, y=proportion, col=plot))+
 
 #plot
 #now we could look at the variation in the regression coefficients between the groups doing caterpillar plots
-posterior=extract(ppf_mod4)
+posterior=extract(ppf_mod2)
 ind_coeff<-apply(posterior$delta,c(2,3),quantile,probs=c(0.025,0.5,0.975))
 df_ind_coeff<-data.frame(Coeff=rep(c("PB biomass","PP biomass","krat biomass"),each=12),LI=c(ind_coeff[1,,1],ind_coeff[1,,2],ind_coeff[1,,3]),Median=c(ind_coeff[2,,1],ind_coeff[2,,2],ind_coeff[2,,3]),HI=c(ind_coeff[3,,1],ind_coeff[3,,2],ind_coeff[3,,3]))
 gr<-paste("Plot",unique(plot_comp$plot))
