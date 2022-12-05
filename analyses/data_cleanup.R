@@ -19,8 +19,8 @@ Portal_data=summarize_individual_rodents(
   min_traps = 1,
   download_if_missing = TRUE,
   quiet = FALSE
-)%>%filter(!is.na(sex),!(treatment=="spectabs"), !(year<1979), !(year>2014), 
-           plot %in%c( 2, 4, 8, 11, 12, 14, 17, 22,3, 15, 19, 21))
+)%>%filter(!is.na(sex),!(treatment=="spectabs"), !(year<1988), !(year>2014), 
+           plot %in%c(1, 2, 4, 8, 9, 11, 12, 14, 17, 22,3, 6, 13, 15, 18, 19, 20, 21))
 #Note: 18 plots included based on Ellen's paper
 
 #add note5 column to filter out dead indivs####
@@ -72,5 +72,4 @@ Portal_no_same= no_dup[-which(no_dup$tag %in% sametags),]
 # "clean" data
 
 Portal_clean=subsetDat(Portal_no_same)
-
-#write.csv(Portal_clean, "Portalraw.csv")
+#write.csv(Portal_clean, "Portal_reproductive_indiv.csv")
